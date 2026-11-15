@@ -1,0 +1,8 @@
+{
+  "name": "Método Reverso — Petrobras & Transpetro",
+  "description": "Plataforma inteligente de preparação para concursos Petrobras e Transpetro (banca CESGRANRIO) baseada no Método Reverso: diagnóstico por provas, análise de confiança e dificuldade, estudo direcionado, planejamento e tutoria.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
