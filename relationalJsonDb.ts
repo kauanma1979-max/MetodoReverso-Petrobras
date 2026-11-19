@@ -105,7 +105,9 @@ export async function saveRelationalStore(storeData: RelationalJsonStore): Promi
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
     const req = store.put(updated, ROOT_KEY);
-    req.onsuccess = () => resolve();
+    tx.oncomplete = () => resolve();
+    tx.onerror = () => reject(tx.error || req.error || new Error('Erro ao gravar banco JSON no IndexedDB'));
+    tx.onabort = () => reject(tx.error || req.error || new Error('Gravação no IndexedDB abortada'));
     req.onerror = () => reject(req.error || new Error('Erro ao gravar banco JSON no IndexedDB'));
   });
 }

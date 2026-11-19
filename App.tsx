@@ -125,6 +125,7 @@ export default function App() {
   // Backup & Restore JSON Modal + Persistent Storage Status
   const [showBackupModal, setShowBackupModal] = useState(false);
   const [persistenceInfo, setPersistenceInfo] = useState<StoragePersistenceInfo | null>(null);
+  const [backupRevision, setBackupRevision] = useState(0);
 
   const refreshPersistenceInfo = useCallback(async () => {
     const info = await api.getStoragePersistenceInfo();
@@ -132,8 +133,12 @@ export default function App() {
   }, []);
 
   const loadWorkspace = useCallback(async (journeyId: string) => {
-    const data = await api.getWorkspace(journeyId);
+    const [data, info] = await Promise.all([
+      api.getWorkspace(journeyId),
+      api.getStoragePersistenceInfo(),
+    ]);
     setWorkspace(data);
+    setPersistenceInfo(info);
   }, []);
 
   useEffect(() => {
@@ -261,14 +266,17 @@ export default function App() {
   const handleExportBackup = useCallback(async () => {
     const data = await api.exportBackup();
     const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: 'application/json',
+      type: 'application/json;charset=utf-8',
     });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `metodo_reverso_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.style.display = 'none';
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(url);
+    a.remove();
+    window.setTimeout(() => URL.revokeObjectURL(url), 1500);
     await refreshPersistenceInfo();
     notify({
       tone: 'success',
@@ -291,8 +299,10 @@ export default function App() {
       if (keepActive) {
         setActiveJourneyId(keepActive);
         await loadWorkspace(keepActive);
+      } else {
+        await refreshPersistenceInfo();
       }
-      await refreshPersistenceInfo();
+      setBackupRevision((rev) => rev + 1);
       notify({
         tone: 'success',
         message:
@@ -678,7 +688,24 @@ export default function App() {
             </nav>
           </div>
 
-          <div className="shrink-0">
+          <div className="shrink-0 flex items-center gap-2">
+            {!activeExam && (
+              <button
+                type="button"
+                onClick={() => setShowBackupModal(true)}
+                title="Backup / Restauração em JSON"
+                aria-label="Backup / Restauração em JSON"
+                className="btn-secondary"
+              >
+                <HardDriveDownload
+                  className="w-4 h-4 text-[var(--color-primary)] shrink-0"
+                  aria-hidden="true"
+                />
+                <span className="hidden md:inline">Backup / Restauração JSON</span>
+                <span className="md:hidden">Backup JSON</span>
+              </button>
+            )}
+
             {activeExam ? (
               <button
                 type="button"
@@ -743,7 +770,7 @@ export default function App() {
               />
             </div>
           ) : (
-            <div key={activeTab} className="view-enter">
+            <div key={`${activeTab}_${backupRevision}`} className="view-enter">
               {activeTab === 'dashboard' && (
                 <DashboardView
                   workspace={workspace}
